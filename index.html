@@ -66,13 +66,14 @@
   }
   .search-section { padding: 16px; }
   .panel-header {
-    padding: 16px;
+    padding: 12px 16px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end; /* Alinhado à direita */
     align-items: center;
     border-bottom: 1px solid var(--border);
+    gap: 8px;
   }
-  .panel-title { font-size: 18px; font-weight: 600; }
+  .panel-title { font-size: 18px; font-weight: 600; margin-right: auto; } /* Empurra os botões */
   
   .search-input-wrapper {
     display: flex;
@@ -93,7 +94,7 @@
   }
   input[type="text"], input[type="search"] {
     width: 100%;
-    padding: 12px 0;
+    padding: 10px 0; /* Altura da barra de pesquisa reduzida */
     border: none;
     background: transparent;
     color: inherit;
@@ -142,6 +143,14 @@
   .card-queue .info { flex: 1; overflow: hidden; }
   .card-queue .info .song { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
   .card-queue .info .who { font-size: 13px; color: var(--text-secondary); }
+  
+  .mode-host .card-queue .info .who {
+      color: var(--text-primary);
+      opacity: 0.8;
+      font-size: 14px;
+      font-weight: 500;
+  }
+  
   .card-actions { display: flex; gap: 8px; }
   .card-actions .icon {
     width: 32px; height: 32px; padding: 0;
@@ -179,7 +188,7 @@
   /* NOVO LAYOUT PARA O MODO HOST */
   #host-container {
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 320px 1fr;
     height: 100vh;
     overflow: hidden;
   }
@@ -219,18 +228,35 @@
     padding: 16px;
     text-align: center;
     border-top: 1px solid var(--border);
-    margin-top: auto; /* Empurra para o final */
+    margin-top: auto;
   }
   .qr-code-container img {
       border-radius: 8px;
-      margin-bottom: 8px;
       border: 4px solid var(--bg);
   }
-  .qr-code-container p {
-      margin: 0;
-      font-size: 14px;
+
+  .btn.icon-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      font-size: 20px;
+      line-height: 1;
+      border-radius: 50%;
+  }
+  .btn.icon-btn.warn {
+      background-color: transparent;
+      border: 1px solid var(--border);
       color: var(--text-secondary);
-      font-weight: 500;
+  }
+  .btn.icon-btn.warn:hover {
+      background-color: #be123c;
+      border-color: #be123c;
+      color: white;
+  }
+  #clearQueueBtn {
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
   }
 
 </style>
@@ -271,15 +297,17 @@
     <div class="sidebar">
         <div class="sidebar-main-content">
             <div class="panel-header">
-              <h2 class="panel-title">Lista de Músicas</h2>
-              <div style="display:flex; gap:8px;">
-                <button class="btn" id="toggleSearchBtn">Adicionar</button>
-                <button class="btn primary" id="playNextBtn">Tocar Próxima</button>
-              </div>
+              <h2 class="panel-title"></h2>
+              <button class="btn icon-btn warn" id="clearQueueBtn" title="Limpar Lista e Histórico">🗑️</button>
+              <button class="btn icon-btn" id="toggleSearchBtn" title="Adicionar Música">+</button>
+              <button class="btn primary" id="playNextBtn">Tocar Próxima</button>
             </div>
             <div class="panel" id="host-search-panel" style="margin: 16px; border-radius: 8px;">
                 <div class="search-section">
-                    <input id="hostSearchInput" type="search" placeholder="Pesquisar para adicionar..." />
+                    <div class="search-input-wrapper">
+                        <span class="prefix-tag">karaoke</span>
+                        <input id="hostSearchInput" type="search" placeholder="Pesquisar para adicionar..." />
+                    </div>
                     <div class="results" id="hostResults"></div>
                 </div>
             </div>
@@ -289,8 +317,7 @@
             </div>
         </div>
         <div class="qr-code-container">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://karaoke-edinho.vercel.app&bgcolor=111827&color=f9fafb&qzone=1" alt="QR Code para adicionar músicas">
-            <p>Escanear para adicionar músicas</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://karaoke-edinho.vercel.app&bgcolor=111827&color=f9fafb&qzone=1" alt="QR Code para adicionar músicas">
         </div>
     </div>
     <div class="main-content">
@@ -347,6 +374,7 @@ const guestSongListEl = document.getElementById("guestSongList");
 const playNextBtn = document.getElementById("playNextBtn");
 const nowPlayingPanel = document.getElementById("nowPlayingPanel");
 const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+const clearQueueBtn = document.getElementById('clearQueueBtn');
 const hostSearchPanel = document.getElementById('host-search-panel');
 // Busca
 const guestSearchInput = document.getElementById('searchInput');
@@ -389,6 +417,19 @@ guestNameSubmit.onclick = () => {
 
 toggleSearchBtn.onclick = () => {
     hostSearchPanel.style.display = hostSearchPanel.style.display === 'block' ? 'none' : 'block';
+};
+
+clearQueueBtn.onclick = () => {
+  const pass = prompt("Senha admin para limpar TODA a lista (fila e histórico):");
+  if (pass !== adminPass) {
+    if (pass) alert("Senha incorreta.");
+    return;
+  }
+  if (confirm("Você tem certeza que deseja remover TODAS as músicas da fila e do histórico? A lista ficará zerada.")) {
+    songList = [];
+    nowPlaying = null;
+    updateFirebase();
+  }
 };
 
 /* =========================
@@ -462,7 +503,7 @@ function addToQueueFromSearch(item, sourceViewMode){
 /* =========================
     BUSCA NO YOUTUBE
     ========================= */
-function setupSearchListener(inputElement, resultsElement, sourceViewMode) {
+function setupSearchListener(inputElement, resultsElement) {
     inputElement.addEventListener('input', () => {
         clearTimeout(searchTimeout);
         let q = inputElement.value.trim();
@@ -471,14 +512,12 @@ function setupSearchListener(inputElement, resultsElement, sourceViewMode) {
             return;
         }
         resultsElement.innerHTML = `<div class="hint">Buscando...</div>`;
-        
-        const finalQuery = sourceViewMode === 'guest' ? `karaoke ${q}` : q;
-        
-        searchTimeout = setTimeout(() => searchYouTube(finalQuery, resultsElement, sourceViewMode), 400);
+        const finalQuery = `karaoke ${q}`;
+        searchTimeout = setTimeout(() => searchYouTube(finalQuery, resultsElement), 400);
     });
 }
 
-async function searchYouTube(q, resultsEl, sourceViewMode){
+async function searchYouTube(q, resultsEl){
   const encoded = encodeURIComponent(q);
   const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encoded}&key=${YOUTUBE_API_KEY}`;
   try{
@@ -488,13 +527,13 @@ async function searchYouTube(q, resultsEl, sourceViewMode){
       return;
     }
     const data = await res.json();
-    renderSearchResults(data.items || [], resultsEl, sourceViewMode);
+    renderSearchResults(data.items || [], resultsEl);
   }catch(err){
     resultsEl.innerHTML = `<div class="hint" style="color:#ff6b6b">Erro de rede.</div>`;
   }
 }
 
-function renderSearchResults(items, resultsEl, sourceViewMode){
+function renderSearchResults(items, resultsEl){
   resultsEl.innerHTML = "";
   if(!items || items.length === 0){ resultsEl.innerHTML = `<div class="hint">Nenhum resultado.</div>`; return; }
   items.forEach(it => {
@@ -515,6 +554,7 @@ function renderSearchResults(items, resultsEl, sourceViewMode){
   });
 
   resultsEl.querySelectorAll("[data-add]").forEach(btn => {
+    const sourceViewMode = (resultsEl.id === 'hostResults') ? 'host' : 'guest';
     btn.onclick = () => {
       addToQueueFromSearch(JSON.parse(btn.dataset.add), sourceViewMode);
     };
@@ -656,8 +696,8 @@ playNextBtn.onclick = () => {
 
 // INICIALIZAÇÃO
 initializeMode();
-setupSearchListener(guestSearchInput, guestResultsEl, 'guest');
-setupSearchListener(hostSearchInput, hostResultsEl, 'host');
+setupSearchListener(guestSearchInput, guestResultsEl);
+setupSearchListener(hostSearchInput, hostResultsEl);
 </script>
 </body>
 </html>
