@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Karaokê Pro</title>
-<link rel="icon" href="data:,">
+<title>Karaokê do Edinho</title>
+<link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23fff' viewBox='0 0 16 16'%3e%3cpath d='M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V3z'/%3e%3cpath d='M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z'/%3e%3c/svg%3e">
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <style>
@@ -14,6 +14,7 @@
     --text-primary: #f9fafb;
     --text-secondary: #9ca3af;
     --accent: #db2777;
+    --green: #10B981;
     --border: #374151;
     --radius: 12px;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
@@ -68,12 +69,12 @@
   .panel-header {
     padding: 12px 16px;
     display: flex;
-    justify-content: flex-end; /* Alinhado à direita */
+    justify-content: flex-end;
     align-items: center;
     border-bottom: 1px solid var(--border);
     gap: 8px;
   }
-  .panel-title { font-size: 18px; font-weight: 600; margin-right: auto; } /* Empurra os botões */
+  .panel-title { font-size: 18px; font-weight: 600; margin-right: auto; }
   
   .search-input-wrapper {
     display: flex;
@@ -94,7 +95,7 @@
   }
   input[type="text"], input[type="search"] {
     width: 100%;
-    padding: 10px 0; /* Altura da barra de pesquisa reduzida */
+    padding: 10px 0;
     border: none;
     background: transparent;
     color: inherit;
@@ -116,20 +117,21 @@
   .btn.small { font-size: 12px; padding: 6px 10px; background: rgba(255,255,255,0.1); border:none; }
   .list-section { padding: 16px; }
   .now-playing-card {
-    padding: 12px;
+    padding: 14px;
     margin-bottom: 16px;
     border-radius: 8px;
-    background-color: rgba(219, 39, 119, 0.1);
-    border-left: 4px solid var(--accent);
+    background-image: linear-gradient(to right, var(--accent), #9d2460);
+    border: 1px solid var(--accent);
   }
-  .now-playing-card .label { font-size: 11px; font-weight: 700; opacity: 0.7; margin-bottom: 4px; text-transform: uppercase; }
-  .now-playing-card .song { font-weight: 600; font-size: 16px; }
-  .now-playing-card .who { opacity: 0.9; font-size: 14px; }
+  .now-playing-card .label { font-size: 12px; font-weight: 700; color: var(--text-primary); opacity: 0.8; margin-bottom: 4px; text-transform: uppercase; }
+  .now-playing-card .song { font-weight: 700; font-size: 18px; color: #fff; }
+  .now-playing-card .who { opacity: 0.9; font-size: 15px; }
   .song-list { display: flex; flex-direction: column; gap: 4px; }
   .card-queue {
     display: flex; align-items: center; gap: 12px;
     padding: 10px; border-radius: 8px;
     transition: all 0.2s ease;
+    border-left: 4px solid transparent;
   }
   .mode-host .card-queue { cursor: grab; }
   .mode-host .card-queue:hover { background: rgba(255,255,255,0.05); }
@@ -142,7 +144,7 @@
   }
   .card-queue .info { flex: 1; overflow: hidden; }
   .card-queue .info .song { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-  .card-queue .info .who { font-size: 13px; color: var(--text-secondary); }
+  .card-queue .info .who { font-size: 14px; color: var(--text-primary); font-weight: 600; }
   
   .mode-host .card-queue .info .who {
       color: var(--text-primary);
@@ -169,8 +171,23 @@
   #guest-login {
     padding: 24px; text-align: center;
   }
-  #guest-login h2 { margin-top: 0; }
-  #guestNameInput { margin-bottom: 12px; text-align: center;}
+  #guest-login h2 { margin-top: 0; font-size: 24px; color: var(--text-primary);}
+  #guestNameInput {
+      margin-bottom: 12px;
+      text-align: center;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+  }
+  #guestNameInput:focus {
+      border-color: var(--accent);
+  }
+  
+  #guest-login-panel {
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 25px rgba(219, 39, 119, 0.15);
+  }
 
   /* LÓGICA DE VISIBILIDADE DOS MODOS */
   #guest-container, #host-container { display: none !important; }
@@ -229,10 +246,22 @@
     text-align: center;
     border-top: 1px solid var(--border);
     margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
   }
   .qr-code-container img {
       border-radius: 8px;
       border: 4px solid var(--bg);
+      background-color: var(--bg);
+  }
+  .qr-code-container p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.4;
+      text-align: left;
   }
 
   .btn.icon-btn {
@@ -259,14 +288,43 @@
       font-size: 16px;
   }
 
+  .card-queue.next-up {
+      background-color: rgba(219, 39, 119, 0.1);
+      border-left: 4px solid var(--accent);
+      padding-left: 6px;
+  }
+  .card-queue.next-up .info .who {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+  }
+  
+  .btn.small.add {
+      background-color: var(--green);
+      color: white;
+      font-weight: bold;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      font-size: 20px;
+      line-height: 30px;
+      text-align: center;
+      border-radius: 50%;
+      border: none;
+  }
+  .btn.small.add:hover {
+      background-color: #059669;
+  }
+
 </style>
 </head>
-<body class="mode-guest"> <div id="guest-container">
+<body class="mode-guest">
+<div id="guest-container">
     <div class="wrapper">
         <header>
           <div class="brand">
             <div class="logo">K</div>
-            <h1>Karaokê Pro</h1>
+            <h1>Karaokê do Edinho</h1>
           </div>
         </header>
         <main>
@@ -317,7 +375,8 @@
             </div>
         </div>
         <div class="qr-code-container">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://karaoke-edinho.vercel.app&bgcolor=111827&color=f9fafb&qzone=1" alt="QR Code para adicionar músicas">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://karaoke-edinho.vercel.app&bgcolor=030712&color=f9fafb&qzone=1" alt="QR Code para adicionar músicas">
+            <p>Escaneie para incluir músicas na fila</p>
         </div>
     </div>
     <div class="main-content">
@@ -325,7 +384,7 @@
             <iframe id="hostPlayerFrame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
             <div id="video-placeholder">
                 <div>
-                    <h2>Karaokê Pro</h2>
+                    <h2>Karaokê do Edinho</h2>
                     <p>A próxima música aparecerá aqui.</p>
                 </div>
             </div>
@@ -478,25 +537,31 @@ function playSong(item) {
 
 function addSongToList(songData){
   if(songList.some(s => s.status === 'queued' && s.nomePessoa.toLowerCase() === songData.nomePessoa.toLowerCase())){
-    return alert("Cada pessoa só pode ter 1 música na fila por vez!");
+    alert("Cada pessoa só pode ter 1 música na fila por vez!");
+    return false; // Retorna false para indicar que a música não foi adicionada
   }
   const newSong = { ...songData, status: 'queued' };
   songList.push(newSong);
   updateFirebase();
+  return true; // Retorna true para indicar sucesso
 }
 
 function addToQueueFromSearch(item, sourceViewMode){
   const who = sourceViewMode === 'host' ? prompt("Adicionar música para qual nome?") : currentGuestName;
   if(!who) return;
-  addSongToList({nomePessoa: who.trim(), nomeMusica: item.title, linkYoutube: `https://www.youtube.com/watch?v=${item.videoId}`});
+
+  const wasAdded = addSongToList({nomePessoa: who.trim(), nomeMusica: item.title, linkYoutube: `https://www.youtube.com/watch?v=${item.videoId}`});
   
-  if (sourceViewMode === 'guest') {
-    guestSearchInput.value = "";
-    guestResultsEl.innerHTML = "";
-    alert(`"${item.title}" foi adicionada à fila!`);
-  } else {
-    hostSearchInput.value = "";
-    hostResultsEl.innerHTML = "";
+  // Apenas mostra o alerta de sucesso e limpa os campos se a música foi realmente adicionada
+  if (wasAdded) {
+    if (sourceViewMode === 'guest') {
+      guestSearchInput.value = "";
+      guestResultsEl.innerHTML = "";
+      alert(`"${item.title}" foi adicionada à fila!`);
+    } else {
+      hostSearchInput.value = "";
+      hostResultsEl.innerHTML = "";
+    }
   }
 }
 
@@ -547,7 +612,7 @@ function renderSearchResults(items, resultsEl){
         <div class="title">${escapeHtml(snip.title)}</div>
       </div>
       <div class="result-actions">
-        <button class="btn small" data-add='${JSON.stringify({videoId: vid, title: escapeHtml(snip.title)})}'>Add</button>
+        <button class="btn small add" data-add='${JSON.stringify({videoId: vid, title: escapeHtml(snip.title)})}'>+</button>
       </div>
     `;
     resultsEl.appendChild(div);
@@ -577,7 +642,7 @@ function renderNowPlaying(){
     if(nowPlaying){
         nowPlayingPanel.innerHTML = `
             <div class="now-playing-card">
-                <div class="label">ÚLTIMA MÚSICA TOCADA</div>
+                <div class="label">TOCANDO AGORA</div>
                 <div class="song">${escapeHtml(nowPlaying.nomeMusica)}</div>
                 <div class="who">${escapeHtml(nowPlaying.nomePessoa)}</div>
             </div>`;
@@ -594,10 +659,14 @@ function renderSongList(targetElement, includeControls){
   }
   const queuedElements = [];
   const playedElements = [];
+  const firstQueuedIndex = songList.findIndex(song => song.status === 'queued');
+
   songList.forEach((it, idx) => {
     const div = document.createElement("div");
     const isPlayed = it.status === 'played';
-    div.className = `card-queue ${isPlayed ? 'played' : ''}`;
+    const isNextUp = !isPlayed && idx === firstQueuedIndex && includeControls;
+
+    div.className = `card-queue ${isPlayed ? 'played' : ''} ${isNextUp ? 'next-up' : ''}`;
     div.dataset.index = idx;
     let rankContent = !isPlayed ? `${queuedElements.length + 1}.` : '✓';
     
