@@ -22,7 +22,7 @@
   html, body { height: 100%; }
   body {
     margin: 0;
-    background-color: var(--bg); /* CORREÇÃO APLICADA AQUI */
+    background-color: var(--bg);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -187,8 +187,12 @@
       background-color: var(--bg);
       border-right: 1px solid var(--border);
       height: 100%;
+      display: flex;
+      flex-direction: column;
+  }
+  #host-container .sidebar-main-content {
+      flex-grow: 1;
       overflow-y: auto;
-      padding-bottom: 24px;
   }
   #host-container .main-content {
       display: flex;
@@ -210,6 +214,24 @@
   #video-placeholder { color: var(--text-secondary); text-align: center; }
   #video-placeholder h2 { color: var(--text-primary); }
   #host-search-panel { display: none; }
+
+  .qr-code-container {
+    padding: 16px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    margin-top: auto; /* Empurra para o final */
+  }
+  .qr-code-container img {
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 4px solid var(--bg);
+  }
+  .qr-code-container p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+  }
 
 </style>
 </head>
@@ -247,22 +269,28 @@
 
 <div id="host-container">
     <div class="sidebar">
-        <div class="panel-header">
-          <h2 class="panel-title">Lista de Músicas</h2>
-          <div style="display:flex; gap:8px;">
-            <button class="btn" id="toggleSearchBtn">Adicionar</button>
-            <button class="btn primary" id="playNextBtn">Tocar Próxima</button>
-          </div>
-        </div>
-        <div class="panel" id="host-search-panel" style="margin: 16px; border-radius: 8px;">
-            <div class="search-section">
-                <input id="hostSearchInput" type="search" placeholder="Pesquisar para adicionar..." />
-                <div class="results" id="hostResults"></div>
+        <div class="sidebar-main-content">
+            <div class="panel-header">
+              <h2 class="panel-title">Lista de Músicas</h2>
+              <div style="display:flex; gap:8px;">
+                <button class="btn" id="toggleSearchBtn">Adicionar</button>
+                <button class="btn primary" id="playNextBtn">Tocar Próxima</button>
+              </div>
+            </div>
+            <div class="panel" id="host-search-panel" style="margin: 16px; border-radius: 8px;">
+                <div class="search-section">
+                    <input id="hostSearchInput" type="search" placeholder="Pesquisar para adicionar..." />
+                    <div class="results" id="hostResults"></div>
+                </div>
+            </div>
+            <div class="list-section">
+              <div id="nowPlayingPanel"></div>
+              <div class="song-list" id="songList"></div>
             </div>
         </div>
-        <div class="list-section">
-          <div id="nowPlayingPanel"></div>
-          <div class="song-list" id="songList"></div>
+        <div class="qr-code-container">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://karaoke-edinho.vercel.app&bgcolor=111827&color=f9fafb&qzone=1" alt="QR Code para adicionar músicas">
+            <p>Escanear para adicionar músicas</p>
         </div>
     </div>
     <div class="main-content">
