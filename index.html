@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Karaokê Pro</title>
+<link rel="icon" href="data:,">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<style>
+  :root {
+    --bg: #030712;
+    --panel: #111827;
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
+    --accent: #db2777;
+    --border: #374151;
+    --radius: 12px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background-color: var(--bg); /* CORREÇÃO APLICADA AQUI */
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; color: var(--text-primary);
+  }
+  h1 { margin: 0; font-size: 20px; }
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+  .btn.primary { background-color: var(--accent); color: var(--text-primary); border: none;}
+  .panel {
+    background-color: var(--panel);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .search-section { padding: 16px; }
+  .panel-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-title { font-size: 18px; font-weight: 600; }
+  
+  .search-input-wrapper {
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    padding: 0 12px;
+  }
+  .search-input-wrapper:focus-within { border-color: var(--accent); }
+  .prefix-tag {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding-right: 8px;
+    border-right: 1px solid var(--border);
+    margin-right: 8px;
+  }
+  input[type="text"], input[type="search"] {
+    width: 100%;
+    padding: 12px 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    outline: none;
+    font-size: 16px;
+  }
+  
+  .results { margin-top: 16px; display: grid; gap: 8px; max-height: 40vh; overflow: auto; padding-right: 6px; }
+  .result-card {
+    display: flex; gap: 12px; align-items: center;
+    padding: 8px; border-radius: 8px;
+    background: rgba(0,0,0, 0.2);
+  }
+  .thumb { width: 90px; height: 50px; border-radius: 6px; flex-shrink: 0; background: var(--bg); overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .meta { flex: 1; }
+  .title { font-size: 14px; font-weight: 500; }
+  .result-actions { display: flex; gap: 6px; }
+  .btn.small { font-size: 12px; padding: 6px 10px; background: rgba(255,255,255,0.1); border:none; }
+  .list-section { padding: 16px; }
+  .now-playing-card {
+    padding: 12px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    background-color: rgba(219, 39, 119, 0.1);
+    border-left: 4px solid var(--accent);
+  }
+  .now-playing-card .label { font-size: 11px; font-weight: 700; opacity: 0.7; margin-bottom: 4px; text-transform: uppercase; }
+  .now-playing-card .song { font-weight: 600; font-size: 16px; }
+  .now-playing-card .who { opacity: 0.9; font-size: 14px; }
+  .song-list { display: flex; flex-direction: column; gap: 4px; }
+  .card-queue {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px; border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  .mode-host .card-queue { cursor: grab; }
+  .mode-host .card-queue:hover { background: rgba(255,255,255,0.05); }
+  .card-queue .rank {
+    width: 24px;
+    flex-shrink: 0;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .card-queue .info { flex: 1; overflow: hidden; }
+  .card-queue .info .song { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+  .card-queue .info .who { font-size: 13px; color: var(--text-secondary); }
+  .card-actions { display: flex; gap: 8px; }
+  .card-actions .icon {
+    width: 32px; height: 32px; padding: 0;
+    border-radius: 50%; border: none; background: transparent;
+    color: var(--text-secondary); cursor: pointer; transition: all .2s;
+  }
+  .card-actions .icon:hover { background: var(--accent); color: #fff; }
+  .card-queue.played {
+    opacity: 0.5; cursor: default;
+    padding-top: 6px; padding-bottom: 6px;
+  }
+  .mode-host .card-queue.played:hover { background: transparent; }
+  .hint { padding: 20px; text-align: center; color: var(--text-secondary); }
+  .divider { border: none; height: 1px; background-color: var(--border); margin: 16px 0 0 0; }
+  
+  #guest-login {
+    padding: 24px; text-align: center;
+  }
+  #guest-login h2 { margin-top: 0; }
+  #guestNameInput { margin-bottom: 12px; text-align: center;}
+
+  /* LÓGICA DE VISIBILIDADE DOS MODOS */
+  #guest-container, #host-container { display: none !important; }
+  body.mode-guest #guest-container { display: block !important; }
+  body.mode-host #host-container { display: grid !important; }
+  
+  #guest-login-panel { display: none; }
+  .mode-guest #guest-login-panel { display: block; }
+
+  #guest-search-panel { display: none; }
+  .mode-guest.logged-in #guest-login-panel { display: none; }
+  .mode-guest.logged-in #guest-search-panel { display: block; }
+
+
+  /* NOVO LAYOUT PARA O MODO HOST */
+  #host-container {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #host-container .sidebar {
+      background-color: var(--bg);
+      border-right: 1px solid var(--border);
+      height: 100%;
+      overflow-y: auto;
+      padding-bottom: 24px;
+  }
+  #host-container .main-content {
+      display: flex;
+      background-color: #000;
+  }
+  #video-player-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #hostPlayerFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: none;
+  }
+  #video-placeholder { color: var(--text-secondary); text-align: center; }
+  #video-placeholder h2 { color: var(--text-primary); }
+  #host-search-panel { display: none; }
+
+</style>
+</head>
+<body class="mode-guest"> <div id="guest-container">
+    <div class="wrapper">
+        <header>
+          <div class="brand">
+            <div class="logo">K</div>
+            <h1>Karaokê Pro</h1>
+          </div>
+        </header>
+        <main>
+          <div class="panel" id="guest-login-panel">
+            <div id="guest-login">
+                <h2>Bem-vindo ao Karaokê!</h2>
+                <p style="color: var(--text-secondary);">Para adicionar músicas, digite seu nome abaixo.</p>
+                <input type="text" id="guestNameInput" placeholder="Seu nome" maxlength="20">
+                <button class="btn primary" id="guestNameSubmit">Entrar</button>
+            </div>
+          </div>
+          <div class="panel" id="guest-search-panel">
+            <div class="search-section">
+                <div class="search-input-wrapper">
+                    <span class="prefix-tag">karaoke</span>
+                    <input id="searchInput" type="search" placeholder="Nome da música..." />
+                </div>
+              <div class="results" id="results"></div>
+              <hr class="divider">
+              <div class="song-list" id="guestSongList" style="padding-top: 16px; max-height: 30vh; overflow-y: auto;"></div>
+            </div>
+          </div>
+        </main>
+    </div>
+</div>
+
+<div id="host-container">
+    <div class="sidebar">
+        <div class="panel-header">
+          <h2 class="panel-title">Lista de Músicas</h2>
+          <div style="display:flex; gap:8px;">
+            <button class="btn" id="toggleSearchBtn">Adicionar</button>
+            <button class="btn primary" id="playNextBtn">Tocar Próxima</button>
+          </div>
+        </div>
+        <div class="panel" id="host-search-panel" style="margin: 16px; border-radius: 8px;">
+            <div class="search-section">
+                <input id="hostSearchInput" type="search" placeholder="Pesquisar para adicionar..." />
+                <div class="results" id="hostResults"></div>
+            </div>
+        </div>
+        <div class="list-section">
+          <div id="nowPlayingPanel"></div>
+          <div class="song-list" id="songList"></div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div id="video-player-container">
+            <iframe id="hostPlayerFrame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <div id="video-placeholder">
+                <div>
+                    <h2>Karaokê Pro</h2>
+                    <p>A próxima música aparecerá aqui.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =========================
+    CONFIGURAÇÃO FIREBASE
+    ========================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCCcINvP6b2SieembUoc0LWqwlLgGfVxa0",
+  authDomain: "karaoke-b8163.firebaseapp.com",
+  projectId: "karaoke-b8163",
+  storageBucket: "karaoke-b8163.appspot.com",
+  messagingSenderId: "44776089203",
+  appId: "1:44776089203:web:7f1d9c9c40c0f0e218ac06"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const karaokeDocRef = db.collection("karaoke-sessions").doc("minha-festa");
+
+/* =========================
+    CONFIG GERAL
+    ========================= */
+const YOUTUBE_API_KEY = "AIzaSyCclJEGzlIwcJtMYrFE01wMY8MECm0Vkto";
+const adminPass = "karaoke123";
+
+/* =========================
+    VARIÁVEIS DE ESTADO
+    ========================= */
+let songList = [];
+let nowPlaying = null;
+let searchTimeout = null;
+let currentGuestName = null;
+let viewMode = 'guest';
+
+/* =========================
+    DOM refs
+    ========================= */
+const guestNameInput = document.getElementById('guestNameInput');
+const guestNameSubmit = document.getElementById('guestNameSubmit');
+const songListEl = document.getElementById("songList");
+const guestSongListEl = document.getElementById("guestSongList");
+const playNextBtn = document.getElementById("playNextBtn");
+const nowPlayingPanel = document.getElementById("nowPlayingPanel");
+const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+const hostSearchPanel = document.getElementById('host-search-panel');
+// Busca
+const guestSearchInput = document.getElementById('searchInput');
+const guestResultsEl = document.getElementById('results');
+const hostSearchInput = document.getElementById('hostSearchInput');
+const hostResultsEl = document.getElementById('hostResults');
+// Player do Host
+const hostPlayerFrame = document.getElementById('hostPlayerFrame');
+const videoPlaceholder = document.getElementById('video-placeholder');
+
+/* =========================
+    INICIALIZAÇÃO E CONTROLE DE MODO
+    ========================= */
+function initializeMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'host') {
+        viewMode = 'host';
+        document.body.className = 'mode-host';
+    } else {
+        viewMode = 'guest';
+        document.body.className = 'mode-guest';
+        const savedName = sessionStorage.getItem('karaokeGuestName');
+        if (savedName) {
+            currentGuestName = savedName;
+            document.body.classList.add('logged-in');
+        }
+    }
+}
+
+guestNameSubmit.onclick = () => {
+    const name = guestNameInput.value.trim();
+    if (name) {
+        currentGuestName = name;
+        sessionStorage.setItem('karaokeGuestName', name);
+        document.body.classList.add('logged-in');
+    } else {
+        alert('Por favor, digite seu nome.');
+    }
+};
+
+toggleSearchBtn.onclick = () => {
+    hostSearchPanel.style.display = hostSearchPanel.style.display === 'block' ? 'none' : 'block';
+};
+
+/* =========================
+    LÓGICA FIREBASE
+    ========================= */
+function updateFirebase() {
+    karaokeDocRef.set({ songList, nowPlaying })
+    .catch(error => {
+        console.error("Erro ao salvar no Firebase:", error);
+        alert("Houve um problema ao salvar a música.");
+    });
+}
+
+karaokeDocRef.onSnapshot((doc) => {
+    if (doc.exists) {
+        const data = doc.data();
+        songList = data.songList || [];
+        nowPlaying = data.nowPlaying || null;
+        renderAll();
+    } else {
+        updateFirebase();
+    }
+}, (error) => console.error("Erro ao escutar o Firebase:", error));
+
+
+/* =========================
+    GERENCIAMENTO DE MÚSICAS
+    ========================= */
+function playSong(item) {
+    if (!item || !item.linkYoutube) return;
+
+    if (viewMode === 'host') {
+        const videoId = extractYouTubeID(item.linkYoutube);
+        if (videoId) {
+            hostPlayerFrame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&iv_load_policy=3&modestbranding=1`;
+            videoPlaceholder.style.display = 'none';
+            hostPlayerFrame.style.display = 'block';
+        }
+    }
+    
+    nowPlaying = item;
+    const itemIndex = songList.findIndex(s => s.linkYoutube === item.linkYoutube && s.nomePessoa === item.nomePessoa);
+    if (itemIndex > -1) { songList[itemIndex].status = 'played'; }
+    updateFirebase();
+}
+
+function addSongToList(songData){
+  if(songList.some(s => s.status === 'queued' && s.nomePessoa.toLowerCase() === songData.nomePessoa.toLowerCase())){
+    return alert("Cada pessoa só pode ter 1 música na fila por vez!");
+  }
+  const newSong = { ...songData, status: 'queued' };
+  songList.push(newSong);
+  updateFirebase();
+}
+
+function addToQueueFromSearch(item, sourceViewMode){
+  const who = sourceViewMode === 'host' ? prompt("Adicionar música para qual nome?") : currentGuestName;
+  if(!who) return;
+  addSongToList({nomePessoa: who.trim(), nomeMusica: item.title, linkYoutube: `https://www.youtube.com/watch?v=${item.videoId}`});
+  
+  if (sourceViewMode === 'guest') {
+    guestSearchInput.value = "";
+    guestResultsEl.innerHTML = "";
+    alert(`"${item.title}" foi adicionada à fila!`);
+  } else {
+    hostSearchInput.value = "";
+    hostResultsEl.innerHTML = "";
+  }
+}
+
+/* =========================
+    BUSCA NO YOUTUBE
+    ========================= */
+function setupSearchListener(inputElement, resultsElement, sourceViewMode) {
+    inputElement.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        let q = inputElement.value.trim();
+        if (q.length < 3) {
+            resultsElement.innerHTML = q.length > 0 ? `<div class="hint">...</div>` : '';
+            return;
+        }
+        resultsElement.innerHTML = `<div class="hint">Buscando...</div>`;
+        
+        const finalQuery = sourceViewMode === 'guest' ? `karaoke ${q}` : q;
+        
+        searchTimeout = setTimeout(() => searchYouTube(finalQuery, resultsElement, sourceViewMode), 400);
+    });
+}
+
+async function searchYouTube(q, resultsEl, sourceViewMode){
+  const encoded = encodeURIComponent(q);
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encoded}&key=${YOUTUBE_API_KEY}`;
+  try{
+    const res = await fetch(url);
+    if(!res.ok){
+      resultsEl.innerHTML = `<div class="hint" style="color:#ff6b6b">Erro na API.</div>`;
+      return;
+    }
+    const data = await res.json();
+    renderSearchResults(data.items || [], resultsEl, sourceViewMode);
+  }catch(err){
+    resultsEl.innerHTML = `<div class="hint" style="color:#ff6b6b">Erro de rede.</div>`;
+  }
+}
+
+function renderSearchResults(items, resultsEl, sourceViewMode){
+  resultsEl.innerHTML = "";
+  if(!items || items.length === 0){ resultsEl.innerHTML = `<div class="hint">Nenhum resultado.</div>`; return; }
+  items.forEach(it => {
+    const vid = it.id.videoId;
+    const snip = it.snippet;
+    const div = document.createElement("div");
+    div.className = "result-card";
+    div.innerHTML = `
+      <div class="thumb"><img src="${snip.thumbnails.medium.url}" alt="Thumbnail"></div>
+      <div class="meta">
+        <div class="title">${escapeHtml(snip.title)}</div>
+      </div>
+      <div class="result-actions">
+        <button class="btn small" data-add='${JSON.stringify({videoId: vid, title: escapeHtml(snip.title)})}'>Add</button>
+      </div>
+    `;
+    resultsEl.appendChild(div);
+  });
+
+  resultsEl.querySelectorAll("[data-add]").forEach(btn => {
+    btn.onclick = () => {
+      addToQueueFromSearch(JSON.parse(btn.dataset.add), sourceViewMode);
+    };
+  });
+}
+
+/* =========================
+    RENDERIZAÇÃO E HELPERS
+    ========================= */
+function renderAll(){
+    if (viewMode === 'host') {
+        renderNowPlaying();
+        renderSongList(songListEl, true);
+    } else {
+        renderSongList(guestSongListEl, false);
+    }
+}
+
+function renderNowPlaying(){
+    if(nowPlaying){
+        nowPlayingPanel.innerHTML = `
+            <div class="now-playing-card">
+                <div class="label">ÚLTIMA MÚSICA TOCADA</div>
+                <div class="song">${escapeHtml(nowPlaying.nomeMusica)}</div>
+                <div class="who">${escapeHtml(nowPlaying.nomePessoa)}</div>
+            </div>`;
+    } else {
+        nowPlayingPanel.innerHTML = ``;
+    }
+}
+
+function renderSongList(targetElement, includeControls){
+  targetElement.innerHTML = "";
+  if(songList.length === 0){
+    targetElement.innerHTML = `<div class="hint">A lista está vazia.</div>`;
+    return;
+  }
+  const queuedElements = [];
+  const playedElements = [];
+  songList.forEach((it, idx) => {
+    const div = document.createElement("div");
+    const isPlayed = it.status === 'played';
+    div.className = `card-queue ${isPlayed ? 'played' : ''}`;
+    div.dataset.index = idx;
+    let rankContent = !isPlayed ? `${queuedElements.length + 1}.` : '✓';
+    
+    let actionsContent = '';
+    if (!isPlayed && includeControls) {
+      actionsContent = `
+        <div class="card-actions">
+          <button class="icon" data-play="${idx}" title="Tocar agora">▶</button>
+          <button class="icon" data-remove="${idx}" title="Remover">✕</button>
+        </div>`;
+    }
+    
+    if (!isPlayed) { 
+        div.draggable = includeControls;
+        queuedElements.push(div); 
+    } else { 
+        playedElements.push(div); 
+    }
+
+    div.innerHTML = `
+      <div class="rank">${rankContent}</div>
+      <div class="info">
+        <div class="song">${escapeHtml(it.nomeMusica)}</div>
+        <div class="who">${escapeHtml(it.nomePessoa)}</div>
+      </div>
+      ${actionsContent}
+    `;
+  });
+  targetElement.append(...queuedElements, ...playedElements);
+
+  if (includeControls) {
+      targetElement.querySelectorAll("[data-play]").forEach(b => b.onclick = () => playSong(songList[Number(b.dataset.play)]));
+      targetElement.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => {
+        const i = Number(b.dataset.remove);
+        const pass = prompt("Senha admin para remover:");
+        if(pass !== adminPass) return alert("Senha incorreta.");
+        songList.splice(i, 1);
+        updateFirebase();
+      });
+      enableDrag(targetElement, (newOrder) => { songList = newOrder; updateFirebase(); });
+  }
+}
+
+function enableDrag(container, onReorder){
+    let originalOrder = [];
+    container.querySelectorAll('.card-queue:not(.played)').forEach(it => {
+        it.addEventListener('dragstart', () => { it.classList.add('dragging'); originalOrder = [...songList]; });
+        it.addEventListener('dragend', () => it.classList.remove('dragging'));
+    });
+    container.addEventListener('dragover', e => {
+        e.preventDefault();
+        const dragging = container.querySelector('.dragging');
+        const after = getDragAfterElement(container, e.clientY);
+        if(dragging) {
+            if(after == null) container.appendChild(dragging);
+            else container.insertBefore(dragging, after);
+        }
+    });
+    container.addEventListener('drop', () => {
+        const playedSongs = originalOrder.filter(s => s.status === 'played');
+        const newQueuedOrder = Array.from(container.querySelectorAll('.card-queue:not(.played)'))
+                                  .map(el => originalOrder[Number(el.dataset.index)]);
+        const newFinalList = [...newQueuedOrder, ...playedSongs];
+        if(typeof onReorder === "function") onReorder(newFinalList);
+    });
+}
+
+function getDragAfterElement(container, y){
+  const draggableElements = [...container.querySelectorAll('.card-queue:not(.dragging):not(.played)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if(offset < 0 && offset > closest.offset){ return { offset: offset, element: child }; } 
+    else { return closest; }
+  }, {offset: Number.NEGATIVE_INFINITY}).element;
+}
+
+function escapeHtml(s){
+  if(!s) return s;
+  return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+
+function extractYouTubeID(url){
+  if(!url) return null;
+  const patterns = [ /v=([a-zA-Z0-9_-]{11})/, /youtu\.be\/([a-zA-Z0-9_-]{11})/, /embed\/([a-zA-Z0-9_-]{11})/, ];
+  for(const p of patterns){ const m = url.match(p); if(m && m[1]) return m[1]; }
+  if(/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+  return null;
+}
+
+playNextBtn.onclick = () => {
+  const nextSong = songList.find(song => song.status === 'queued');
+  if (!nextSong) return alert("Nenhuma música na fila para tocar.");
+  playSong(nextSong);
+};
+
+// INICIALIZAÇÃO
+initializeMode();
+setupSearchListener(guestSearchInput, guestResultsEl, 'guest');
+setupSearchListener(hostSearchInput, hostResultsEl, 'host');
+</script>
+</body>
+</html>
